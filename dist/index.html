@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#121126" />
+    <meta name="description" content="65位学园偶像全员随机淘汰赛，选出你的终极本命。" />
+    <title>LoveLive! 厨力大比拼</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="home-screen" class="screen home-screen" aria-labelledby="home-title">
+        <h1 id="home-title">LoveLive!<br />厨力大比拼</h1>
+        <p class="home-copy">65位学园偶像全部参赛。每一次选择，都决定她们能走多远。</p>
+
+        <div class="home-actions">
+          <button id="continue-button" class="button button-primary" type="button" hidden>继续上次比赛</button>
+          <button id="start-button" class="button button-secondary" type="button">开始命运抽签</button>
+        </div>
+        <p class="privacy-note">比赛记录只保存在当前浏览器，不会上传。</p>
+      </section>
+
+      <section id="bracket-screen" class="screen bracket-screen" aria-labelledby="bracket-title" hidden>
+        <header class="bracket-header">
+          <button id="bracket-home-button" class="icon-button" type="button">首页</button>
+          <div>
+            <p class="eyebrow">命运签表已生成 · 本局对阵不会改变</p>
+            <h2 id="bracket-title">你的本命淘汰签表</h2>
+          </div>
+          <button id="draw-image-button" class="icon-button" type="button">保存树状图</button>
+        </header>
+
+        <div class="bracket-layout-switch" role="group" aria-label="选择签表显示方式">
+          <span>签表显示</span>
+          <button id="bracket-web-layout-button" type="button" aria-pressed="true">网页版</button>
+          <button id="bracket-mobile-layout-button" type="button" aria-pressed="false">手机版</button>
+        </div>
+
+        <div class="bracket-controls">
+          <label class="member-search">
+            <span>查找我的推</span>
+            <input id="member-search-input" type="search" list="member-search-list" placeholder="输入角色姓名" autocomplete="off" />
+            <datalist id="member-search-list"></datalist>
+          </label>
+          <div class="bracket-jumps" role="group" aria-label="快速查看赛区">
+            <button id="left-bracket-button" type="button">左半区</button>
+            <button id="right-bracket-button" type="button">右半区</button>
+            <button id="current-match-button" type="button">当前比赛</button>
+          </div>
+          <div class="bracket-zoom" role="group" aria-label="调整签表大小">
+            <button id="bracket-zoom-out-button" type="button" aria-label="缩小签表">−</button>
+            <button id="bracket-zoom-reset-button" type="button" aria-label="恢复签表原始大小">100%</button>
+            <button id="bracket-zoom-in-button" type="button" aria-label="放大签表">＋</button>
+            <button id="bracket-zoom-fit-button" type="button">适应全局</button>
+          </div>
+        </div>
+
+        <p id="bracket-search-note" class="bracket-search-note">按住左键拖动，滚轮缩放签表；搜索角色，可高亮她的夺冠路线。</p>
+        <div id="bracket-viewport" class="bracket-viewport" tabindex="0" aria-label="可横向和纵向滚动的淘汰赛签表">
+          <div id="bracket-board" class="bracket-board"></div>
+        </div>
+
+        <div class="bracket-actions">
+          <button id="bracket-primary-button" class="button button-primary" type="button">从资格赛开始</button>
+        </div>
+      </section>
+
+      <section id="battle-screen" class="screen battle-screen" aria-live="polite" hidden>
+        <header class="battle-header">
+          <button id="home-button" class="icon-button" type="button" aria-label="返回首页">首页</button>
+          <div class="round-heading">
+            <p id="round-kicker" class="eyebrow">资格赛 · 65进64</p>
+            <h2 id="round-title">资格赛</h2>
+          </div>
+          <button id="view-bracket-button" class="icon-button" type="button">签表</button>
+        </header>
+
+        <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
+        <div class="match-meta">
+          <span id="match-count">第1场</span>
+          <span id="round-remaining">胜者进入首轮第1场</span>
+        </div>
+
+        <div id="competitor-grid" class="competitor-grid" role="group" aria-label="请选择晋级角色"></div>
+
+        <p id="choice-hint" class="choice-hint">二选一</p>
+
+        <div class="battle-tools">
+          <button id="undo-button" class="button button-quiet" type="button">撤销上一次</button>
+          <button id="replay-round-button" class="button button-quiet" type="button">重开上一轮</button>
+        </div>
+
+        <div id="stage-transition" class="stage-transition" role="status" aria-live="assertive" hidden>
+          <p id="stage-transition-kicker">本轮结束</p>
+          <strong id="stage-transition-title">32强诞生</strong>
+          <span id="stage-transition-next">接下来：32进16</span>
+        </div>
+      </section>
+
+      <section id="result-screen" class="screen result-screen" aria-labelledby="result-title" hidden>
+        <p class="eyebrow">64次选择之后</p>
+        <h2 id="result-title">你的终极本命</h2>
+        <div id="champion-card" class="champion-card"></div>
+        <button id="summary-image-button" class="button button-primary result-share-button" type="button">生成我的厨力战报</button>
+
+        <section class="finalists" aria-labelledby="finalists-title">
+          <div class="section-heading">
+            <h3 id="finalists-title">最终排名</h3>
+            <span>冠军 · 亚军 · 四强 · 八强</span>
+          </div>
+          <div id="finalists-list" class="finalists-list"></div>
+        </section>
+
+        <div class="result-actions">
+          <button id="bracket-image-button" class="button button-secondary" type="button">保存冠军晋级树</button>
+          <button id="restart-button" class="button button-quiet" type="button">换一张签表，再选一次</button>
+        </div>
+      </section>
+    </main>
+
+    <div id="image-modal" class="image-modal" hidden>
+      <div class="image-modal-panel" role="dialog" aria-modal="true" aria-labelledby="image-modal-title">
+        <div class="image-modal-header">
+          <div>
+            <h2 id="image-modal-title">厨力战报已生成</h2>
+            <p id="image-modal-note">长按保存，发给同好看看你的选择</p>
+          </div>
+          <button id="close-image-modal" class="icon-button" type="button" aria-label="关闭图片">关闭</button>
+        </div>
+        <div class="generated-image-wrap"><img id="generated-image" alt="比赛结果图片" /></div>
+        <a id="download-image" class="button button-primary" download>保存厨力战报</a>
+      </div>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
+
