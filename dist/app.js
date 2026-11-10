@@ -235,6 +235,19 @@ function completedChoiceCount(state) {
   );
 }
 
+function getBracketMatch(state, roundIndex, matchIndex) {
+  const existingMatch = state.rounds[roundIndex]?.matches[matchIndex];
+  if (existingMatch) return existingMatch;
+  if (roundIndex !== state.roundIndex + 1 || roundIndex >= ROUND_LABELS.length) return null;
+  const previousMatches = state.rounds[roundIndex - 1]?.matches;
+  if (!previousMatches) return null;
+  const competitors = previousMatches
+    .slice(matchIndex * 2, matchIndex * 2 + 2)
+    .map((match) => match.winnerId)
+    .filter(Boolean);
+  return competitors.length ? { competitors, winnerId: null } : null;
+}
+
 function getPlacements(state) {
   if (state.status !== "complete" || state.rounds.length < 6) return null;
   const finalRound = state.rounds[5];
@@ -277,6 +290,7 @@ if (typeof module !== "undefined" && module.exports) {
     undoLastChoice,
     replayPreviousRound,
     completedChoiceCount,
+    getBracketMatch,
     getPlacements,
     isValidSavedState
   };
@@ -311,6 +325,7 @@ if (hasDOM) {
     bracketZoomResetButton: document.querySelector("#bracket-zoom-reset-button"),
     bracketZoomInButton: document.querySelector("#bracket-zoom-in-button"),
     bracketZoomFitButton: document.querySelector("#bracket-zoom-fit-button"),
+    bracketChoiceHint: document.querySelector("#bracket-choice-hint"),
     bracketPrimaryButton: document.querySelector("#bracket-primary-button"),
     homeButton: document.querySelector("#home-button"),
     viewBracketButton: document.querySelector("#view-bracket-button"),
@@ -405,8 +420,8 @@ if (hasDOM) {
     if (state) {
       elements.continueButton.textContent = state.status === "complete"
         ? "查看我的上次结果"
-        : state.status === "draw" ? "回到这张签表" : "继续上次选择";
-      elements.startButton.textContent = "换一张新签表";
+        : state.status === "draw" ? "回到这张对阵图" : "继续上次选择";
+      elements.startButton.textContent = "换一张新对阵图";
     } else {
       elements.startButton.textContent = "开始命运抽签";
     }
@@ -451,7 +466,7 @@ if (hasDOM) {
     } else {
       const empty = document.createElement("div");
       empty.className = "member-search-empty";
-      empty.textContent = "没有找到这个角色";
+      empty.textContent = "未找到角色。";
       elements.memberSearchList.replaceChildren(empty);
     }
     elements.memberSearchList.hidden = !shouldOpen;
@@ -501,6 +516,35 @@ if (hasDOM) {
     return "region-hasunosora";
   }
 
+  function isCurrentBracketChoice(roundIndex, matchIndex, memberId) {
+    if (
+      state.status !== "playing" ||
+      roundIndex !== state.roundIndex ||
+      matchIndex !== state.matchIndex
+    ) return false;
+    if (!state.qualifier.winnerId) return state.qualifier.competitors.includes(memberId);
+    return state.rounds[roundIndex]?.matches[matchIndex]?.competitors.includes(memberId) ?? false;
+  }
+
+  function enableBracketChoice(element, roundIndex, matchIndex, memberId) {
+    if (!isCurrentBracketChoice(roundIndex, matchIndex, memberId)) return;
+    const member = memberById.get(memberId);
+    element.classList.add("bracket-choice");
+    element.setAttribute("role", "button");
+    element.setAttribute("tabindex", "0");
+    element.setAttribute("aria-label", `选择${member.name}晋级`);
+    const choose = (event) => {
+      event.stopPropagation();
+      chooseBracketMember(memberId);
+    };
+    element.addEventListener("click", choose);
+    element.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      choose(event);
+    });
+  }
+
   function createBracketNode(roundIndex, matchIndex) {
     const node = document.createElement("div");
     node.className = "bracket-node";
@@ -510,17 +554,16 @@ if (hasDOM) {
     const position = bracketNodePosition(roundIndex, matchIndex);
     node.style.left = `${position.x}px`;
     node.style.top = `${position.y}px`;
-    const round = state.rounds[roundIndex];
-    const match = round?.matches[matchIndex];
+    const match = getBracketMatch(state, roundIndex, matchIndex);
     if (roundIndex === 0 && matchIndex === 0) node.classList.add("qualification-node");
-    if (state.status === "playing" && roundIndex === state.roundIndex && matchIndex === state.matchIndex) {
-      node.classList.add("current-node");
-    }
+    const isCurrentNode = state.status === "playing" && roundIndex === state.roundIndex && matchIndex === state.matchIndex;
+    if (isCurrentNode) node.classList.add("current-node");
     const number = document.createElement("span");
     number.className = "match-number";
-    number.textContent = roundIndex === 0 && matchIndex === 0
+    const matchLabel = roundIndex === 0 && matchIndex === 0
       ? "首轮第1场 · 资格赛接入"
       : `${ROUND_LABELS[roundIndex]} · 第${matchIndex + 1}场`;
+    number.textContent = isCurrentNode ? `当前比赛 · ${matchLabel}` : matchLabel;
     node.append(number);
     if (!match) {
       const pending = document.createElement("span");
@@ -549,6 +592,7 @@ if (hasDOM) {
         const participantName = document.createElement("span");
         participantName.textContent = member.name;
         participant.append(participantName);
+        enableBracketChoice(participant, roundIndex, matchIndex, memberId);
         qualifierDuel.append(participant);
         if (competitorIndex === 0) {
           const versus = document.createElement("b");
@@ -586,6 +630,7 @@ if (hasDOM) {
           ? "迎战"
           : "等待挑战";
       byeRow.append(byeName, byeStatus);
+      enableBracketChoice(byeRow, roundIndex, matchIndex, byeMember.id);
       node.append(qualifierDuel, connector, byeRow);
       return node;
     }
@@ -613,6 +658,7 @@ if (hasDOM) {
         status.append(createGroupLogo(member, "node-group-logo"));
       }
       row.append(name, status);
+      enableBracketChoice(row, roundIndex, matchIndex, memberId);
       node.append(row);
     });
     return node;
@@ -701,8 +747,7 @@ if (hasDOM) {
       matchIndex = Math.floor(matchIndex / 2);
     }
     const member = memberById.get(memberId);
-    const regionNames = ["左上", "左下", "右上", "右下"];
-    elements.bracketSearchNote.textContent = `${member.name}位于${regionNames[Math.floor(openingIndex / 8)]}半区，荧光绿线路是她通往决赛的潜在路线。`;
+    elements.bracketSearchNote.textContent = `${member.name}的晋级路线已高亮。`;
     if (shouldScroll) scrollToBracketNode(0, openingIndex);
   }
 
@@ -751,7 +796,9 @@ if (hasDOM) {
   }
 
   function setBracketLayoutMode(mode) {
-    bracketLayoutMode = mode === "mobile" ? "mobile" : "web";
+    const nextMode = mode === "mobile" ? "mobile" : "web";
+    const layoutChanged = nextMode !== bracketLayoutMode;
+    bracketLayoutMode = nextMode;
     try {
       localStorage.setItem(LAYOUT_STORAGE_KEY, bracketLayoutMode);
     } catch {
@@ -764,7 +811,7 @@ if (hasDOM) {
     elements.bracketMobileLayoutButton.classList.toggle("active", !isWeb);
     elements.bracketWebLayoutButton.setAttribute("aria-pressed", String(isWeb));
     elements.bracketMobileLayoutButton.setAttribute("aria-pressed", String(!isWeb));
-    if (!isWeb) setBracketScale(1, { preserveCenter: false });
+    if (!isWeb && layoutChanged) setBracketScale(1, { preserveCenter: false });
   }
 
   function renderBracket({ preserveScroll = false } = {}) {
@@ -775,10 +822,14 @@ if (hasDOM) {
     if (highlightedMemberId) highlightMemberRoute(highlightedMemberId, false);
     elements.bracketPrimaryButton.textContent = state.status === "draw"
       ? "从资格赛开始"
-      : state.status === "complete" ? "查看比赛结果" : "继续比赛";
+      : state.status === "complete" ? "查看比赛结果" : "切换到1v1对决模式";
+    elements.bracketChoiceHint.textContent = state.status === "draw"
+      ? "点击当前对局中的角色即可晋级。"
+      : state.status === "complete"
+        ? "比赛已经结束，可查看最终结果。"
+        : "当前比赛已高亮，点击角色晋级。";
     showScreen("bracket");
     setBracketLayoutMode(bracketLayoutMode);
-    if (!window.matchMedia("(min-width: 900px)").matches) bracketScale = 1;
     setBracketScale(bracketScale);
     if (preserveScroll) {
       elements.bracketViewport.scrollLeft = previousLeft;
@@ -860,6 +911,23 @@ if (hasDOM) {
     }, 250);
   }
 
+  function chooseBracketMember(memberId) {
+    if (locked || state.status !== "playing") return;
+    locked = true;
+    const selected = selectWinner(state, memberId);
+    if (!selected) {
+      locked = false;
+      return;
+    }
+    saveState();
+    locked = false;
+    if (state.status === "complete") {
+      renderResult();
+      return;
+    }
+    renderBracket();
+  }
+
   function showStageTransition() {
     elements.stageTransitionKicker.textContent = "本轮结束";
     elements.stageTransitionTitle.textContent = ROUND_ARRIVAL_LABELS[state.roundIndex];
@@ -926,13 +994,13 @@ if (hasDOM) {
     state = createTournament();
     highlightedMemberId = null;
     elements.memberSearchInput.value = "";
-    elements.bracketSearchNote.textContent = "正在打乱命运，生成你的本命签表……";
+    elements.bracketSearchNote.textContent = "正在生成对阵图……";
     saveState();
     elements.startButton.disabled = true;
     elements.startButton.textContent = "正在抽签……";
     window.setTimeout(() => {
       elements.startButton.disabled = false;
-      elements.bracketSearchNote.textContent = "按住左键拖动，滚轮缩放签表；搜索角色，可高亮她的夺冠路线。";
+      elements.bracketSearchNote.textContent = "拖动查看，滚轮缩放；搜索角色可查看晋级路线。";
       renderBracket();
     }, 650);
   }
@@ -1082,7 +1150,7 @@ if (hasDOM) {
 
     function drawNode(roundIndex, matchIndex) {
       const position = bracketNodePosition(roundIndex, matchIndex);
-      const match = state.rounds[roundIndex]?.matches[matchIndex];
+      const match = getBracketMatch(state, roundIndex, matchIndex);
       const isQualifierNode = roundIndex === 0 && matchIndex === 0;
       const height = isQualifierNode ? 86 : 58;
       const top = position.y - height / 2;
@@ -1174,7 +1242,7 @@ if (hasDOM) {
     context.textAlign = "center";
     context.fillStyle = "#8b879b";
     context.font = "700 12px sans-serif";
-    context.fillText("LoveLive! 厨力大比拼 · 完整树状签表", BRACKET_WIDTH / 2, BRACKET_HEIGHT - 22);
+    context.fillText("LoveLive! 厨力大比拼 · 完整树状对阵图", BRACKET_WIDTH / 2, BRACKET_HEIGHT - 22);
     return canvas;
   }
 
@@ -1338,7 +1406,7 @@ if (hasDOM) {
         elements.downloadImage.href = currentObjectUrl;
         elements.downloadImage.download = filename;
         elements.imageModalTitle.textContent = options.title || "厨力战报已生成";
-        elements.imageModalNote.textContent = options.note || "长按保存，发给同好看看你的选择";
+        elements.imageModalNote.textContent = options.note || "长按图片保存。";
         elements.downloadImage.textContent = options.downloadLabel || "保存厨力战报";
         elements.imageModal.hidden = false;
         document.body.style.overflow = "hidden";
@@ -1361,7 +1429,7 @@ if (hasDOM) {
     if (state.status === "draw") {
       beginTournament(state);
       saveState();
-      renderBattle();
+      renderBracket();
     } else if (state.status === "complete") {
       renderResult();
     } else {
@@ -1374,7 +1442,7 @@ if (hasDOM) {
     if (!query) {
       highlightedMemberId = null;
       elements.bracketBoard.querySelectorAll(".route-highlight").forEach((element) => element.classList.remove("route-highlight"));
-      elements.bracketSearchNote.textContent = "按住左键拖动，滚轮缩放签表；搜索角色，可高亮她的夺冠路线。";
+      elements.bracketSearchNote.textContent = "拖动查看，滚轮缩放；搜索角色可查看晋级路线。";
       return;
     }
     const exact = MEMBERS.find((member) => member.name.toLocaleLowerCase("zh-CN") === query);
@@ -1384,7 +1452,7 @@ if (hasDOM) {
     } else {
       elements.bracketSearchNote.textContent = matches.length
         ? `找到${matches.length}名角色，请继续输入完整姓名。`
-        : "没有找到这个名字，请检查角色姓名。";
+        : "未找到角色。";
     }
   });
   elements.memberSearchInput.addEventListener("focus", () => {
@@ -1432,6 +1500,7 @@ if (hasDOM) {
   const bracketTouches = new Map();
   let touchGesture = null;
   elements.bracketViewport.addEventListener("pointerdown", (event) => {
+    if (event.target.closest(".bracket-choice")) return;
     if (event.pointerType === "touch") {
       event.preventDefault();
       bracketTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -1536,10 +1605,10 @@ if (hasDOM) {
   }, { passive: false });
   elements.drawImageButton.addEventListener("click", () => showCanvas(
     generateTreeCanvas(),
-    "LoveLive厨力大比拼-完整树状签表.png",
+    "LoveLive厨力大比拼-完整树状对阵图.png",
     {
-      title: "完整树状签表已生成",
-      note: "双指放大查看，长按即可保存完整签表",
+      title: "完整树状对阵图已生成",
+      note: "双指放大，长按保存。",
       downloadLabel: "保存完整树状图"
     }
   ));
@@ -1575,7 +1644,7 @@ if (hasDOM) {
     "LoveLive厨力大比拼-冠军晋级树.png",
     {
       title: "冠军晋级树已生成",
-      note: "完整保留每一轮选择，双指放大查看",
+      note: "双指放大，长按保存。",
       downloadLabel: "保存冠军晋级树"
     }
   ));

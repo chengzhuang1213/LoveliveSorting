@@ -12,7 +12,7 @@
     <main class="app-shell">
       <section id="home-screen" class="screen home-screen" aria-labelledby="home-title">
         <h1 id="home-title">LoveLive!<br />厨力大比拼</h1>
-        <p class="home-copy">65位学园偶像全部参赛。每一次选择，都决定她们能走多远。</p>
+        <p class="home-copy">65位学园偶像参赛，选出你的本命。</p>
 
         <div class="home-actions">
           <button id="continue-button" class="button button-primary" type="button" hidden>继续上次比赛</button>
@@ -25,14 +25,14 @@
         <header class="bracket-header">
           <button id="bracket-home-button" class="icon-button" type="button">首页</button>
           <div>
-            <p class="eyebrow">命运签表已生成 · 本局对阵不会改变</p>
-            <h2 id="bracket-title">你的本命淘汰签表</h2>
+            <p class="eyebrow">对阵图已生成</p>
+            <h2 id="bracket-title">淘汰赛对阵图</h2>
           </div>
           <button id="draw-image-button" class="icon-button" type="button">保存树状图</button>
         </header>
 
-        <div class="bracket-layout-switch" role="group" aria-label="选择签表显示方式">
-          <span>签表显示</span>
+        <div class="bracket-layout-switch" role="group" aria-label="选择对阵图显示方式">
+          <span>对阵图显示</span>
           <button id="bracket-web-layout-button" type="button" aria-pressed="true">网页版</button>
           <button id="bracket-mobile-layout-button" type="button" aria-pressed="false">手机版</button>
         </div>
@@ -51,22 +51,23 @@
             <button id="right-bracket-button" type="button">右半区</button>
             <button id="current-match-button" type="button">当前比赛</button>
           </div>
-          <div class="bracket-zoom" role="group" aria-label="调整签表大小">
-            <button id="bracket-zoom-out-button" type="button" aria-label="缩小签表">−</button>
-            <button id="bracket-zoom-reset-button" type="button" aria-label="恢复签表原始大小">100%</button>
-            <button id="bracket-zoom-in-button" type="button" aria-label="放大签表">＋</button>
+          <div class="bracket-zoom" role="group" aria-label="调整对阵图大小">
+            <button id="bracket-zoom-out-button" type="button" aria-label="缩小对阵图">−</button>
+            <button id="bracket-zoom-reset-button" type="button" aria-label="恢复对阵图原始大小">100%</button>
+            <button id="bracket-zoom-in-button" type="button" aria-label="放大对阵图">＋</button>
             <button id="bracket-zoom-fit-button" type="button">适应全局</button>
           </div>
         </div>
 
-        <p id="bracket-search-note" class="bracket-search-note">按住左键拖动，滚轮缩放签表；搜索角色，可高亮她的夺冠路线。</p>
-        <div id="bracket-viewport" class="bracket-viewport" tabindex="0" aria-label="可横向和纵向滚动的淘汰赛签表">
+        <p id="bracket-search-note" class="bracket-search-note">拖动查看，滚轮缩放；搜索角色可查看晋级路线。</p>
+        <div id="bracket-viewport" class="bracket-viewport" tabindex="0" aria-label="可横向和纵向滚动的淘汰赛对阵图">
           <div id="bracket-stage" class="bracket-stage">
             <div id="bracket-board" class="bracket-board"></div>
           </div>
         </div>
 
         <div class="bracket-actions">
+          <p id="bracket-choice-hint" class="bracket-choice-hint">点击当前对局中的角色即可晋级。</p>
           <button id="bracket-primary-button" class="button button-primary" type="button">从资格赛开始</button>
         </div>
       </section>
@@ -78,7 +79,7 @@
             <p id="round-kicker" class="eyebrow">资格赛 · 65进64</p>
             <h2 id="round-title">资格赛</h2>
           </div>
-          <button id="view-bracket-button" class="icon-button" type="button">签表</button>
+          <button id="view-bracket-button" class="icon-button" type="button">切换到对阵图模式</button>
         </header>
 
         <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
@@ -119,7 +120,7 @@
 
         <div class="result-actions">
           <button id="bracket-image-button" class="button button-secondary" type="button">保存冠军晋级树</button>
-          <button id="restart-button" class="button button-quiet" type="button">换一张签表，再选一次</button>
+          <button id="restart-button" class="button button-quiet" type="button">换一张对阵图，再选一次</button>
         </div>
       </section>
     </main>
@@ -129,7 +130,7 @@
         <div class="image-modal-header">
           <div>
             <h2 id="image-modal-title">厨力战报已生成</h2>
-            <p id="image-modal-note">长按保存，发给同好看看你的选择</p>
+            <p id="image-modal-note">长按图片保存。</p>
           </div>
           <button id="close-image-modal" class="icon-button" type="button" aria-label="关闭图片">关闭</button>
         </div>

@@ -11,6 +11,7 @@ const {
   beginTournament,
   completedChoiceCount,
   createTournament,
+  getBracketMatch,
   getPlacements,
   replayPreviousRound,
   selectWinner,
@@ -83,7 +84,7 @@ test("两人资格赛胜者挑战一名轮空者，首轮保持32场", () => {
   assert.equal(new Set(allocated).size, 65);
 });
 
-test("签表公布阶段不能提前选择，开赛后保持原签表", () => {
+test("对阵图公布阶段不能提前选择，开赛后保持原对阵图", () => {
   const state = createTournament(MEMBERS, () => 0.42);
   const originalDraw = structuredClone(state);
   const firstMember = state.qualifier.competitors[0];
@@ -92,6 +93,32 @@ test("签表公布阶段不能提前选择，开赛后保持原签表", () => {
   assert.equal(selectWinner(state, firstMember), true);
   assert.deepEqual(state.rounds[0].matches[0].competitors, [firstMember, originalDraw.qualifier.byeId]);
   assert.deepEqual(state.rounds[0].matches.slice(1), originalDraw.rounds[0].matches.slice(1));
+});
+
+test("只能选择当前比赛中的角色，不能从对阵图跳选后续比赛", () => {
+  const state = createTournament(MEMBERS, () => 0.42);
+  beginTournament(state);
+  const laterMember = state.rounds[0].matches[1].competitors[0];
+  assert.equal(selectWinner(state, laterMember), false);
+  const qualifierWinner = state.qualifier.competitors[0];
+  assert.equal(selectWinner(state, qualifierWinner), true);
+  assert.equal(selectWinner(state, laterMember), false);
+  assert.equal(state.matchIndex, 0);
+});
+
+test("当前轮产生胜者后实时填充下一轮对阵图", () => {
+  const state = createTournament(MEMBERS, () => 0.42);
+  beginTournament(state);
+  selectWinner(state, state.qualifier.competitors[0]);
+  const firstWinner = state.rounds[0].matches[0].competitors[0];
+  selectWinner(state, firstWinner);
+  assert.deepEqual(getBracketMatch(state, 1, 0).competitors, [firstWinner]);
+  assert.equal(getBracketMatch(state, 2, 0), null);
+
+  const secondWinner = state.rounds[0].matches[1].competitors[0];
+  selectWinner(state, secondWinner);
+  assert.deepEqual(getBracketMatch(state, 1, 0).competitors, [firstWinner, secondWinner]);
+  assert.equal(state.roundIndex, 0);
 });
 
 test("完整比赛经过64次选择产生冠军和前八", () => {
