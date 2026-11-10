@@ -148,19 +148,67 @@ h1 {
   background: var(--panel);
 }
 
-.member-search span { color: #d9d7e2; font-size: 12px; font-weight: 800; }
+.member-search > label { color: #d9d7e2; font-size: 12px; font-weight: 800; }
+.member-search-box { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 38px; }
 .member-search input {
   min-width: 0;
   height: 36px;
   padding: 0 11px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 10px 0 0 10px;
   outline: 0;
   background: rgba(0,0,0,.18);
   color: #fff;
   font: inherit;
 }
 .member-search input:focus { border-color: var(--pink); }
+.member-search-box > button {
+  height: 36px;
+  border: 1px solid var(--line);
+  border-left: 0;
+  border-radius: 0 10px 10px 0;
+  background: rgba(255,255,255,.08);
+  color: #dedbe9;
+  font-size: 18px;
+  cursor: pointer;
+}
+.member-search-list {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  max-height: 300px;
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(18, 16, 37, .99);
+  box-shadow: 0 16px 40px rgba(0,0,0,.38);
+  scrollbar-color: rgba(255,255,255,.28) transparent;
+}
+.member-search-list[hidden] { display: none; }
+.member-search-option {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.member-search-option:hover, .member-search-option:focus-visible { outline: 0; background: rgba(255,255,255,.09); }
+.member-search-option img { width: 34px; height: 34px; border-radius: 7px; object-fit: cover; }
+.member-search-option span { min-width: 0; }
+.member-search-option strong, .member-search-option small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-search-option strong { font-size: 12px; }
+.member-search-option small { margin-top: 2px; color: #8f8ba2; font-size: 9px; }
+.member-search-empty { padding: 14px; color: #8f8ba2; font-size: 11px; text-align: center; }
 
 .bracket-jumps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
 .bracket-jumps button, .bracket-zoom button {
@@ -192,10 +240,12 @@ h1 {
   background-size: 28px 28px;
   scrollbar-color: rgba(255,255,255,.25) transparent;
   overscroll-behavior: contain;
+  touch-action: none;
   -webkit-overflow-scrolling: touch;
 }
 
-.bracket-board { position: relative; width: 2420px; height: 1760px; overflow: hidden; }
+.bracket-stage { position: relative; width: 2420px; height: 1760px; }
+.bracket-board { position: absolute; top: 0; left: 0; width: 2420px; height: 1760px; overflow: hidden; transform-origin: 0 0; }
 .bracket-region {
   position: absolute;
   z-index: 0;

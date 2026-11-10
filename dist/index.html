@@ -38,11 +38,14 @@
         </div>
 
         <div class="bracket-controls">
-          <label class="member-search">
-            <span>查找我的推</span>
-            <input id="member-search-input" type="search" list="member-search-list" placeholder="输入角色姓名" autocomplete="off" />
-            <datalist id="member-search-list"></datalist>
-          </label>
+          <div class="member-search">
+            <label for="member-search-input">查找我的推</label>
+            <div class="member-search-box">
+              <input id="member-search-input" type="search" placeholder="输入一个字即可查找" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="member-search-list" aria-expanded="false" />
+              <button id="member-search-toggle" type="button" aria-label="显示全部角色" aria-expanded="false">⌄</button>
+              <div id="member-search-list" class="member-search-list" role="listbox" hidden></div>
+            </div>
+          </div>
           <div class="bracket-jumps" role="group" aria-label="快速查看赛区">
             <button id="left-bracket-button" type="button">左半区</button>
             <button id="right-bracket-button" type="button">右半区</button>
@@ -58,7 +61,9 @@
 
         <p id="bracket-search-note" class="bracket-search-note">按住左键拖动，滚轮缩放签表；搜索角色，可高亮她的夺冠路线。</p>
         <div id="bracket-viewport" class="bracket-viewport" tabindex="0" aria-label="可横向和纵向滚动的淘汰赛签表">
-          <div id="bracket-board" class="bracket-board"></div>
+          <div id="bracket-stage" class="bracket-stage">
+            <div id="bracket-board" class="bracket-board"></div>
+          </div>
         </div>
 
         <div class="bracket-actions">

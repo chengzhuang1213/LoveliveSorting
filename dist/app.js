@@ -296,9 +296,11 @@ if (hasDOM) {
     bracketHomeButton: document.querySelector("#bracket-home-button"),
     drawImageButton: document.querySelector("#draw-image-button"),
     memberSearchInput: document.querySelector("#member-search-input"),
+    memberSearchToggle: document.querySelector("#member-search-toggle"),
     memberSearchList: document.querySelector("#member-search-list"),
     bracketSearchNote: document.querySelector("#bracket-search-note"),
     bracketViewport: document.querySelector("#bracket-viewport"),
+    bracketStage: document.querySelector("#bracket-stage"),
     bracketBoard: document.querySelector("#bracket-board"),
     leftBracketButton: document.querySelector("#left-bracket-button"),
     rightBracketButton: document.querySelector("#right-bracket-button"),
@@ -411,15 +413,50 @@ if (hasDOM) {
     showScreen("home");
   }
 
-  function fillMemberSearchList() {
-    const options = MEMBERS
-      .map((member) => {
-        const option = document.createElement("option");
-        option.value = member.name;
-        option.label = member.group;
-        return option;
+  function closeMemberSearchList() {
+    elements.memberSearchList.hidden = true;
+    elements.memberSearchInput.setAttribute("aria-expanded", "false");
+    elements.memberSearchToggle.setAttribute("aria-expanded", "false");
+  }
+
+  function renderMemberSearchList(query = "", shouldOpen = true) {
+    const normalized = query.trim().toLocaleLowerCase("zh-CN");
+    const matches = normalized
+      ? MEMBERS.filter((member) => member.name.toLocaleLowerCase("zh-CN").includes(normalized))
+      : MEMBERS;
+    const options = matches.map((member) => {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.className = "member-search-option";
+      option.setAttribute("role", "option");
+      const avatar = document.createElement("img");
+      avatar.src = member.image;
+      avatar.alt = "";
+      const copy = document.createElement("span");
+      const name = document.createElement("strong");
+      name.textContent = member.name;
+      const group = document.createElement("small");
+      group.textContent = member.group;
+      copy.append(name, group);
+      option.append(avatar, copy);
+      option.addEventListener("click", () => {
+        elements.memberSearchInput.value = member.name;
+        closeMemberSearchList();
+        highlightMemberRoute(member.id);
       });
-    elements.memberSearchList.replaceChildren(...options);
+      return option;
+    });
+    if (options.length) {
+      elements.memberSearchList.replaceChildren(...options);
+    } else {
+      const empty = document.createElement("div");
+      empty.className = "member-search-empty";
+      empty.textContent = "没有找到这个角色";
+      elements.memberSearchList.replaceChildren(empty);
+    }
+    elements.memberSearchList.hidden = !shouldOpen;
+    elements.memberSearchInput.setAttribute("aria-expanded", String(shouldOpen));
+    elements.memberSearchToggle.setAttribute("aria-expanded", String(shouldOpen));
   }
 
   function roundTitle(stateValue) {
@@ -691,7 +728,9 @@ if (hasDOM) {
     const contentX = (elements.bracketViewport.scrollLeft + anchorX) / previousScale;
     const contentY = (elements.bracketViewport.scrollTop + anchorY) / previousScale;
     bracketScale = Math.min(1.5, Math.max(.25, Math.round(nextScale * 100) / 100));
-    elements.bracketBoard.style.zoom = String(bracketScale);
+    elements.bracketStage.style.width = `${BRACKET_WIDTH * bracketScale}px`;
+    elements.bracketStage.style.height = `${BRACKET_HEIGHT * bracketScale}px`;
+    elements.bracketBoard.style.transform = `scale(${bracketScale})`;
     elements.bracketZoomResetButton.textContent = `${Math.round(bracketScale * 100)}%`;
     elements.bracketZoomOutButton.disabled = bracketScale <= .25;
     elements.bracketZoomInButton.disabled = bracketScale >= 1.5;
@@ -1331,6 +1370,7 @@ if (hasDOM) {
   });
   elements.memberSearchInput.addEventListener("input", () => {
     const query = elements.memberSearchInput.value.trim().toLocaleLowerCase("zh-CN");
+    renderMemberSearchList(query, true);
     if (!query) {
       highlightedMemberId = null;
       elements.bracketBoard.querySelectorAll(".route-highlight").forEach((element) => element.classList.remove("route-highlight"));
@@ -1346,6 +1386,30 @@ if (hasDOM) {
         ? `找到${matches.length}名角色，请继续输入完整姓名。`
         : "没有找到这个名字，请检查角色姓名。";
     }
+  });
+  elements.memberSearchInput.addEventListener("focus", () => {
+    renderMemberSearchList(elements.memberSearchInput.value, true);
+  });
+  elements.memberSearchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeMemberSearchList();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      elements.memberSearchList.querySelector(".member-search-option")?.focus();
+    }
+  });
+  elements.memberSearchToggle.addEventListener("click", () => {
+    if (elements.memberSearchList.hidden) {
+      renderMemberSearchList(elements.memberSearchInput.value, true);
+      elements.memberSearchInput.focus();
+    } else {
+      closeMemberSearchList();
+    }
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (!event.target.closest(".member-search")) closeMemberSearchList();
   });
   elements.leftBracketButton.addEventListener("click", () => {
     elements.bracketViewport.scrollTo({ left: 0, top: 0, behavior: "smooth" });
@@ -1365,7 +1429,32 @@ if (hasDOM) {
   elements.bracketZoomInButton.addEventListener("click", () => setBracketScale(bracketScale + .15));
   elements.bracketZoomFitButton.addEventListener("click", fitBracketToViewport);
   let bracketDrag = null;
+  const bracketTouches = new Map();
+  let touchGesture = null;
   elements.bracketViewport.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch") {
+      event.preventDefault();
+      bracketTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      elements.bracketViewport.setPointerCapture(event.pointerId);
+      elements.bracketViewport.classList.add("is-dragging");
+      if (bracketTouches.size === 1) {
+        touchGesture = {
+          type: "pan",
+          startX: event.clientX,
+          startY: event.clientY,
+          scrollLeft: elements.bracketViewport.scrollLeft,
+          scrollTop: elements.bracketViewport.scrollTop
+        };
+      } else if (bracketTouches.size === 2) {
+        const [first, second] = [...bracketTouches.values()];
+        touchGesture = {
+          type: "pinch",
+          distance: Math.hypot(second.x - first.x, second.y - first.y),
+          scale: bracketScale
+        };
+      }
+      return;
+    }
     if (event.pointerType !== "mouse" || event.button !== 0) return;
     bracketDrag = {
       pointerId: event.pointerId,
@@ -1379,6 +1468,28 @@ if (hasDOM) {
     elements.bracketViewport.classList.add("is-dragging");
   });
   elements.bracketViewport.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch" && bracketTouches.has(event.pointerId)) {
+      event.preventDefault();
+      bracketTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (bracketTouches.size >= 2) {
+        const [first, second] = [...bracketTouches.values()];
+        const distance = Math.hypot(second.x - first.x, second.y - first.y);
+        if (touchGesture?.type !== "pinch") {
+          touchGesture = { type: "pinch", distance, scale: bracketScale };
+          return;
+        }
+        const centerX = (first.x + second.x) / 2;
+        const centerY = (first.y + second.y) / 2;
+        setBracketScale(touchGesture.scale * distance / Math.max(1, touchGesture.distance), {
+          anchorClientX: centerX,
+          anchorClientY: centerY
+        });
+      } else if (touchGesture?.type === "pan") {
+        elements.bracketViewport.scrollLeft = touchGesture.scrollLeft - (event.clientX - touchGesture.startX);
+        elements.bracketViewport.scrollTop = touchGesture.scrollTop - (event.clientY - touchGesture.startY);
+      }
+      return;
+    }
     if (!bracketDrag || bracketDrag.pointerId !== event.pointerId) return;
     const deltaX = event.clientX - bracketDrag.startX;
     const deltaY = event.clientY - bracketDrag.startY;
@@ -1389,6 +1500,23 @@ if (hasDOM) {
     elements.bracketViewport.scrollTop = bracketDrag.scrollTop - deltaY;
   });
   function stopBracketDrag(event) {
+    if (event.pointerType === "touch" && bracketTouches.has(event.pointerId)) {
+      bracketTouches.delete(event.pointerId);
+      if (bracketTouches.size === 1) {
+        const remaining = [...bracketTouches.values()][0];
+        touchGesture = {
+          type: "pan",
+          startX: remaining.x,
+          startY: remaining.y,
+          scrollLeft: elements.bracketViewport.scrollLeft,
+          scrollTop: elements.bracketViewport.scrollTop
+        };
+      } else if (bracketTouches.size === 0) {
+        touchGesture = null;
+        elements.bracketViewport.classList.remove("is-dragging");
+      }
+      return;
+    }
     if (!bracketDrag || bracketDrag.pointerId !== event.pointerId) return;
     if (elements.bracketViewport.hasPointerCapture(event.pointerId)) {
       elements.bracketViewport.releasePointerCapture(event.pointerId);
@@ -1400,7 +1528,6 @@ if (hasDOM) {
   elements.bracketViewport.addEventListener("pointercancel", stopBracketDrag);
   elements.bracketViewport.addEventListener("dragstart", (event) => event.preventDefault());
   elements.bracketViewport.addEventListener("wheel", (event) => {
-    if (bracketLayoutMode !== "web" || !window.matchMedia("(min-width: 900px)").matches) return;
     event.preventDefault();
     setBracketScale(bracketScale + (event.deltaY < 0 ? .1 : -.1), {
       anchorClientX: event.clientX,
@@ -1457,7 +1584,7 @@ if (hasDOM) {
     document.body.style.overflow = "";
   });
 
-  fillMemberSearchList();
+  renderMemberSearchList("", false);
   renderHome();
 }
 
