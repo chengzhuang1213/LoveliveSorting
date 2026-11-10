@@ -28,7 +28,7 @@
             <p class="eyebrow">对阵图已生成</p>
             <h2 id="bracket-title">淘汰赛对阵图</h2>
           </div>
-          <button id="draw-image-button" class="icon-button" type="button">保存树状图</button>
+          <button id="draw-image-button" class="icon-button" type="button">生成当前树状图</button>
         </header>
 
         <div class="bracket-layout-switch" role="group" aria-label="选择对阵图显示方式">
@@ -68,7 +68,10 @@
 
         <div class="bracket-actions">
           <p id="bracket-choice-hint" class="bracket-choice-hint">点击当前对局中的角色即可晋级。</p>
-          <button id="bracket-primary-button" class="button button-primary" type="button">从资格赛开始</button>
+          <div class="bracket-action-buttons">
+            <button id="bracket-undo-button" class="button button-quiet" type="button">撤销上一次</button>
+            <button id="bracket-primary-button" class="button button-primary" type="button">从资格赛开始</button>
+          </div>
         </div>
       </section>
 

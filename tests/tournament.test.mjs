@@ -156,6 +156,18 @@ test("资格赛和首轮选择都可以逐步撤销", () => {
   assert.deepEqual(state.rounds[0].matches[0].competitors, [state.qualifier.byeId]);
 });
 
+test("对阵图可以连续撤销多场选择", () => {
+  const state = createTournament(MEMBERS, () => 0.1);
+  beginTournament(state);
+  for (let index = 0; index < 4; index += 1) playCurrentMatch(state);
+  assert.equal(completedChoiceCount(state), 4);
+  for (let remaining = 3; remaining >= 0; remaining -= 1) {
+    assert.equal(undoLastChoice(state), true);
+    assert.equal(completedChoiceCount(state), remaining);
+  }
+  assert.equal(undoLastChoice(state), false);
+});
+
 test("重开上一轮保留原对阵并删除之后轮次", () => {
   const state = createTournament(MEMBERS, () => 0.75);
   beginTournament(state);

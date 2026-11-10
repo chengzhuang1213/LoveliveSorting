@@ -392,6 +392,7 @@ h1 {
 
 .bracket-actions { position: sticky; bottom: 0; padding-top: 12px; background: linear-gradient(180deg, transparent, #0d0c1c 30%); }
 .bracket-choice-hint { margin: 0 0 8px; color: #ffd96d; font-size: 12px; text-align: center; }
+.bracket-action-buttons { display: grid; grid-template-columns: minmax(110px, .45fr) minmax(0, 1fr); gap: 8px; }
 .bracket-actions .button { width: 100%; }
 
 .battle-screen { display: flex; flex-direction: column; }
@@ -552,6 +553,25 @@ img.avatar-placeholder { display: block; object-fit: cover; }
 @media (min-width: 600px) {
   .app-shell { padding-inline: 28px; }
   .competitor-grid { gap: 18px; }
+}
+
+@media (max-width: 899px) {
+  .bracket-node.current-node .bracket-choice {
+    color: #fff;
+    background: rgba(255, 217, 109, .16);
+    box-shadow: inset 0 0 0 1px rgba(255, 217, 109, .48);
+  }
+  .bracket-node.current-node .bracket-choice::after {
+    content: "点选";
+    flex: none;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: #ffd96d;
+    color: #3a2c08;
+    font-size: 7px;
+    font-weight: 900;
+    text-decoration: none;
+  }
 }
 
 @media (min-width: 900px) {

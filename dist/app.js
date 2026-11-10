@@ -326,6 +326,7 @@ if (hasDOM) {
     bracketZoomInButton: document.querySelector("#bracket-zoom-in-button"),
     bracketZoomFitButton: document.querySelector("#bracket-zoom-fit-button"),
     bracketChoiceHint: document.querySelector("#bracket-choice-hint"),
+    bracketUndoButton: document.querySelector("#bracket-undo-button"),
     bracketPrimaryButton: document.querySelector("#bracket-primary-button"),
     homeButton: document.querySelector("#home-button"),
     viewBracketButton: document.querySelector("#view-bracket-button"),
@@ -828,6 +829,7 @@ if (hasDOM) {
       : state.status === "complete"
         ? "比赛已经结束，可查看最终结果。"
         : "当前比赛已高亮，点击角色晋级。";
+    elements.bracketUndoButton.disabled = state.status === "draw" || completedChoiceCount(state) === 0;
     showScreen("bracket");
     setBracketLayoutMode(bracketLayoutMode);
     setBracketScale(bracketScale);
@@ -1435,6 +1437,11 @@ if (hasDOM) {
     } else {
       renderBattle();
     }
+  });
+  elements.bracketUndoButton.addEventListener("click", () => {
+    if (locked || !undoLastChoice(state)) return;
+    saveState();
+    renderBracket();
   });
   elements.memberSearchInput.addEventListener("input", () => {
     const query = elements.memberSearchInput.value.trim().toLocaleLowerCase("zh-CN");
